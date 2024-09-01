@@ -1,4 +1,6 @@
 .venv/
+.pnpm-store/
+.vscode/settings.json
 .vscode/sudopass.txt
 node_modules/
 .$Design.drawio.bkp
