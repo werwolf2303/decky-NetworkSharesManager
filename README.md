@@ -1,3 +1,3 @@
 # decky-NetworkSharesManager
 
-Manage your shares from inside Gaming Mode
+Manage your network shares from inside Gaming Mode

@@ -1,105 +1,43 @@
 import {
-  ButtonItem,
-  definePlugin,
-  DialogButton,
-  Menu,
-  MenuItem,
-  Navigation,
-  PanelSection,
-  PanelSectionRow,
-  ServerAPI,
-  showContextMenu,
-  staticClasses,
+    definePlugin,
+    ServerAPI,
+    staticClasses,
 } from "decky-frontend-lib";
-import { VFC } from "react";
-import { FaShip } from "react-icons/fa";
-
-import logo from "../assets/logo.png";
-
-// interface AddMethodArgs {
-//   left: number;
-//   right: number;
-// }
-
-const Content: VFC<{ serverAPI: ServerAPI }> = ({serverAPI}) => {
-  // const [result, setResult] = useState<number | undefined>();
-
-  // const onClick = async () => {
-  //   const result = await serverAPI.callPluginMethod<AddMethodArgs, number>(
-  //     "add",
-  //     {
-  //       left: 2,
-  //       right: 2,
-  //     }
-  //   );
-  //   if (result.success) {
-  //     setResult(result.result);
-  //   }
-  // };
-
-  return (
-    <PanelSection title="Panel Section">
-      <PanelSectionRow>
-        <ButtonItem
-          layout="below"
-          onClick={(e) =>
-            showContextMenu(
-              <Menu label="Menu" cancelText="CAAAANCEL" onCancel={() => {}}>
-                <MenuItem onSelected={() => {}}>Item #1</MenuItem>
-                <MenuItem onSelected={() => {}}>Item #2</MenuItem>
-                <MenuItem onSelected={() => {}}>Item #3</MenuItem>
-              </Menu>,
-              e.currentTarget ?? window
-            )
-          }
-        >
-          Server says yolo
-        </ButtonItem>
-      </PanelSectionRow>
-
-      <PanelSectionRow>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <img src={logo} />
-        </div>
-      </PanelSectionRow>
-
-      <PanelSectionRow>
-        <ButtonItem
-          layout="below"
-          onClick={() => {
-            Navigation.CloseSideMenus();
-            Navigation.Navigate("/decky-plugin-test");
-          }}
-        >
-          Router
-        </ButtonItem>
-      </PanelSectionRow>
-    </PanelSection>
-  );
-};
-
-const DeckyPluginRouterTest: VFC = () => {
-  return (
-    <div style={{ marginTop: "50px", color: "white" }}>
-      Hello World!
-      <DialogButton onClick={() => Navigation.NavigateToLibraryTab()}>
-        Go to Library
-      </DialogButton>
-    </div>
-  );
-};
+import {FaNetworkWired} from "react-icons/fa";
+import {Backend} from "./backend";
+import {BackendEvents, Events} from "./events";
+import {Frontend} from "./frontend";
+import {MainView} from "./views/mainview";
+import {Language} from "./language/language";
 
 export default definePlugin((serverApi: ServerAPI) => {
-  serverApi.routerHook.addRoute("/decky-plugin-test", DeckyPluginRouterTest, {
-    exact: true,
-  });
+    var backend = new Backend(serverApi, new BackendEvents());
+    var frontend = new Frontend(new Events(), new Language(backend));
 
-  return {
-    title: <div className={staticClasses.Title}>Example Plugin</div>,
-    content: <Content serverAPI={serverApi} />,
-    icon: <FaShip />,
-    onDismount() {
-      serverApi.routerHook.removeRoute("/decky-plugin-test");
-    },
-  };
+    const { unregister: unregisterOnSuspendRequest } =
+        SteamClient.System.RegisterForOnSuspendRequest(async () => {
+            frontend.getEvents().trigger("onsuspend")
+        });
+
+    const { unregister: unregisterOnResumeFromSuspend } =
+        SteamClient.System.RegisterForOnResumeFromSuspend(async () => {
+            frontend.getEvents().trigger("onresumefromsuspend")
+        })
+
+    const { unregister: unregisterConnectivityTestChanges } =
+        SteamClient.System.Network.RegisterForConnectivityTestChanges(async (connectivityTestChange: { eConnectivityTestResult: number, eFakeState: number, bChecking: boolean }) => {
+            frontend.getEvents().trigger("onconnectivitychange", connectivityTestChange)
+        })
+
+    return {
+        title: <div className={staticClasses.Title}>Network Shares Manager</div>,
+        content: <MainView frontend={frontend} backend={backend}/>,
+        icon: <FaNetworkWired/>,
+        onDismount() {
+            frontend.getEvents().trigger("onunload")
+            unregisterOnSuspendRequest();
+            unregisterOnResumeFromSuspend();
+            unregisterConnectivityTestChanges();
+        }
+    };
 });

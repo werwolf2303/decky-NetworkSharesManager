@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/decky-NetworkDriveManager.iml" filepath="$PROJECT_DIR$/.idea/decky-NetworkDriveManager.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/decky-NetworkSharesManager.iml" filepath="$PROJECT_DIR$/.idea/decky-NetworkSharesManager.iml" />
     </modules>
   </component>
 </project>
