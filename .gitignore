@@ -1,0 +1,6 @@
+.venv/
+.vscode/sudopass.txt
+node_modules/
+.$Design.drawio.bkp
+.$Design.drawio.dtmp
+data/
