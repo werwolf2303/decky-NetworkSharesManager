@@ -36,7 +36,7 @@ export class Language {
         var found = false;
         var selectedLangauge = await this.backend.getSetting("language");
         var upper: Language = this;
-        var autodetect = Boolean(await this.backend.getSetting("autolanguage"));
+        var autodetect = await this.backend.getSetting("autolanguage") == "true";
         for (var language of this.availableLanguages) {
             if (autodetect) {
                 if (language.code === navigator.language.split("-")[0].toLocaleLowerCase()) {

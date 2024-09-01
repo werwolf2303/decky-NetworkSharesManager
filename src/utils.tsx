@@ -16,6 +16,11 @@ export function removeFromArray(arr: any, value: number) {
     return arr;
 }
 
-export function getLastElement(string: string, character: string): string {
-    return string.split(character)[string.split(character).length - 1];
+export function getLastElement(string: string, character: string, defaultValue: string = ""): string {
+    var ret = string.split(character)[string.split(character).length - 1];
+    if(string.split(character).length == 3) {
+        if(defaultValue != "") return defaultValue.split(character)[defaultValue.split(character).length - 1];
+        return "";
+    }
+    return ret;
 }

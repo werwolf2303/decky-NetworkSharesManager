@@ -10,7 +10,7 @@ export class Backend {
         this.backendEvents = backendEvents;
     }
 
-    async getPendingBackendEvents(): Promise<BackendEvent[]> {
+    getPendingBackendEvents(): BackendEvent[] {
         return this.backendEvents.getPendingEvents();
     }
 
@@ -29,7 +29,6 @@ export class Backend {
     async execute(code: string): Promise<string> {
         var ret = (await this.serverAPI.callPluginMethod("execute", {"code": code})).result as string;
         this.backendEvents.parse(JSON.parse(await this.getPendingEvents()));
-        console.log(this.backendEvents.getPendingEvents())
         return ret;
     }
 
@@ -94,6 +93,12 @@ export class Backend {
 
     async removeSetting(key: string): Promise<boolean> {
         var bool = (await this.serverAPI.callPluginMethod("removeSetting", {"key": key})).success as boolean;
+        this.backendEvents.parse(JSON.parse(await this.getPendingEvents()));
+        return bool;
+    }
+
+    async refreshConfig(): Promise<boolean> {
+        var bool = (await this.serverAPI.callPluginMethod("refreshConfig", {})).success as boolean;
         this.backendEvents.parse(JSON.parse(await this.getPendingEvents()));
         return bool;
     }

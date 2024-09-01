@@ -2,8 +2,9 @@ import {Backend} from "../backend";
 import {Frontend} from "../frontend";
 import React, {ReactElement, useState} from "react";
 import {DialogButton, Field, PanelSection, Spinner} from "decky-frontend-lib";
-import {FaPen} from "react-icons/fa";
 import {getLastElement} from "../utils";
+import {openBackendErrorDialog} from "../dialogs/backenderror";
+import {LuHardDriveUpload} from "react-icons/lu";
 
 export type FileSystem = {
     source: string;
@@ -13,7 +14,7 @@ export type FileSystem = {
     "use%": string | null;
     used: string | null;
     avail: string | null;
-    children?: FileSystem[]; // Recursive definition for nested children
+    children?: FileSystem[];
 };
 
 export type FileSystemArray = {
@@ -22,25 +23,33 @@ export type FileSystemArray = {
 
 export function MountedShares({backend, frontend}: {backend: Backend, frontend: Frontend}): ReactElement {
     const [ loaded, setLoaded ] = useState<boolean>(false);
-    const [ shares, setShares ] = React.useState<FileSystemArray | null>(null);
-    const [ cifsCount, setCifsCount ] = React.useState(0);
+    const [ cifsFileSystems, setCifsFileSystems ] = React.useState<FileSystem[]>([]);
 
     async function doReload() {
-        setShares(JSON.parse(await backend.getMounts()));
-        let counter = 0;
-        shares?.filesystems?.[0]?.children?.map(share => {
-            if(share.fstype === "cifs") counter++;
+        var shares: FileSystemArray = JSON.parse(await backend.getMounts());
+        backend.getPendingBackendEvents().map((backendEvent) => {
+            openBackendErrorDialog(backendEvent, frontend);
+        })
+        setCifsFileSystems([])
+        if(shares != null) traverseFileSystem(shares.filesystems)
+    }
+
+    function traverseFileSystem(children: FileSystem[], foundCifs: FileSystem[] = []) {
+        children?.map(filesystem => {
+            if(filesystem?.children) {
+                traverseFileSystem(filesystem.children, foundCifs)
+            }
+            if(filesystem?.fstype === "cifs") foundCifs.push(filesystem)
         });
-        setCifsCount(counter)
+        return foundCifs
     }
 
     async function load() {
-        setShares(JSON.parse(await backend.getMounts()));
-        let counter = 0;
-        shares?.filesystems?.[0]?.children?.map(share => {
-            if(share.fstype === "cifs") counter++;
-        });
-        setCifsCount(counter)
+        var shares: FileSystemArray = JSON.parse(await backend.getMounts());
+        backend.getPendingBackendEvents().map((backendEvent) => {
+            openBackendErrorDialog(backendEvent, frontend);
+        })
+        if(shares != null) setCifsFileSystems(traverseFileSystem(shares.filesystems))
         frontend.getEvents().subscribe(doReload, "ondomountedtablerefresh");
     }
 
@@ -58,7 +67,7 @@ export function MountedShares({backend, frontend}: {backend: Backend, frontend: 
         }
         {loaded && <>
             <PanelSection title={frontend.getLanguage().translate("mountedshares.title")}>
-                {shares != null && cifsCount != 0 && <table style={{
+                {cifsFileSystems?.length != 0 && <table style={{
                     width: "100%"
                 }}>
                     <tr>
@@ -70,9 +79,9 @@ export function MountedShares({backend, frontend}: {backend: Backend, frontend: 
                             fontSize: "12px",
                             textAlign: "left"
                         }}>{frontend.getLanguage().translate("table.column2")}</th>
-                        <th style={{fontSize: "12px", textAlign: "left"}}>{frontend.getLanguage().translate("table.column3")}</th>
+                        <th style={{fontSize: "12px", textAlign: "left"}}>{frontend.getLanguage().translate("mountedshares.unmount")}</th>
                     </tr>
-                    {shares?.filesystems?.[0]?.children?.map(share => (
+                    {cifsFileSystems.map(share => (
                         share.fstype === "cifs" && (
                         <tr>
                             <td>{getLastElement(share.source, "/")}</td>
@@ -84,16 +93,19 @@ export function MountedShares({backend, frontend}: {backend: Backend, frontend: 
                             }} onClick={() => {
                                 async function unmount() {
                                     await backend.unmount(share.target);
+                                    backend.getPendingBackendEvents().map((backendEvent) => {
+                                        openBackendErrorDialog(backendEvent, frontend);
+                                    })
                                     frontend.getEvents().trigger("ondomountedtablerefresh");
                                 }
                                 unmount()
                             }}>
-                                <FaPen></FaPen>
+                                <LuHardDriveUpload />
                             </DialogButton></td>
                         </tr>
                     )))}
                 </table>}
-                {shares != null && cifsCount == 0 && <p>{frontend.getLanguage().translate("table.empty")}</p>}
+                {cifsFileSystems?.length == 0 && <p>{frontend.getLanguage().translate("table.empty")}</p>}
             </PanelSection>
         </>}
     </>)

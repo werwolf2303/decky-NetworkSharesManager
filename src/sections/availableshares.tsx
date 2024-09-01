@@ -1,12 +1,13 @@
 import {Backend} from "../backend";
 import {Frontend} from "../frontend";
 import React, {ReactElement, useState} from "react";
-import {DialogButton, Field, PanelSection, Spinner} from "decky-frontend-lib";
+import {DialogButton, Field, PanelSection, showModal, sleep, Spinner} from "decky-frontend-lib";
 import {FaPen} from "react-icons/fa";
 import {getLastElement} from "../utils";
-import {showAddShareModal} from "../dialogs/addshare";
-import {showEditShareModal} from "../dialogs/editshare";
-import { GrNetworkDrive } from "react-icons/gr";
+import {EditShareModal} from "../dialogs/editshare";
+import {GrNetworkDrive } from "react-icons/gr";
+import {AddShareModal} from "../dialogs/addshare";
+import {openBackendErrorDialog} from "../dialogs/backenderror";
 
 export function AvailableShares({backend, frontend}: {backend: Backend, frontend: Frontend}): ReactElement {
     const [ loaded, setLoaded ] = useState<boolean>(false);
@@ -20,12 +21,19 @@ export function AvailableShares({backend, frontend}: {backend: Backend, frontend
         id: string;
     }>>([]);
 
+
     async function doReload() {
         setShares(JSON.parse(await backend.getShares()));
+        backend.getPendingBackendEvents().map((backendEvent) => {
+            openBackendErrorDialog(backendEvent, frontend);
+        })
     }
 
     async function load() {
         setShares(JSON.parse(await backend.getShares()));
+        backend.getPendingBackendEvents().map((backendEvent) => {
+            openBackendErrorDialog(backendEvent, frontend);
+        })
         frontend.getEvents().subscribe(doReload, "ondoalltablerefresh");
     }
 
@@ -64,7 +72,10 @@ export function AvailableShares({backend, frontend}: {backend: Backend, frontend
                             }} onClick={() => {
                                 async function mount() {
                                     await backend.mount(share.username, share.password, share.address, share.mountingpath);
-                                    frontend.getEvents().trigger("ondomountedtablerefresh");
+                                    backend.getPendingBackendEvents().map((backendEvent) => {
+                                        openBackendErrorDialog(backendEvent, frontend);
+                                    })
+                                    sleep(2000).then(() =>   frontend.getEvents().trigger("ondomountedtablerefresh"));
                                 }
                                 mount()
                             }}>
@@ -75,7 +86,16 @@ export function AvailableShares({backend, frontend}: {backend: Backend, frontend
                                 margin: '2px 0px',
                                 minWidth: 'auto'
                             }} onClick={() => {
-                                showEditShareModal(frontend, backend, share);
+                                const {Close} = showModal(
+                                    <EditShareModal
+                                        closeModal={() => {Close()}}
+                                        frontend={frontend}
+                                        backend={backend}
+                                        share={share}
+                                        color={"white"}
+                                    />,
+                                    window
+                                )
                             }}>
                                 <FaPen></FaPen>
                             </DialogButton></td>
@@ -86,7 +106,20 @@ export function AvailableShares({backend, frontend}: {backend: Backend, frontend
                 <DialogButton style={{
                     width: "90%"
                 }} onClick={() => {
-                    showAddShareModal(frontend, backend);
+                    const {Close} = showModal(
+                        <AddShareModal
+                            closeModal={() => {Close()}}
+                            frontend={frontend}
+                            backend={backend}
+                            color={"white"}
+                            onClose={() => {
+                                backend.getPendingBackendEvents().map((backendEvent) => {
+                                    openBackendErrorDialog(backendEvent, frontend);
+                                })
+                            }}
+                        />,
+                        window
+                    )
                 }}>
                     {frontend.getLanguage().translate("availableshares.addshare.title")}
                 </DialogButton>

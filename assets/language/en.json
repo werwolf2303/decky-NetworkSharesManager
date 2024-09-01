@@ -7,6 +7,7 @@
   "table.column3": "Mount",
   "table.empty": "No shares",
   "mountedshares.title": "Mounted shares",
+  "mountedshares.unmount": "Unmount",
   "availableshares.title": "Available shares",
   "availableshares.addshare.title": "Add share",
   "availableshares.edit": "Edit",
@@ -28,5 +29,12 @@
   "manageshare.automount": "Auto mount",
   "manageshare.remove": "Remove share",
   "manageshare.apply": "Apply",
-  "manageshare.closecancel": "Close (Cancel)"
+  "manageshare.closecancel": "Close (Cancel)",
+  "backend.event.dialog.title": "Backend error",
+  "backend.event.dialog.button1": "Ok",
+  "backend.event.dialog.button2": "Close",
+  "firsttime.dialog.title": "Info",
+  "firsttime.dialog.button1": "Ok",
+  "firsttime.dialog.button2": "Close",
+  "firsttime.dialog.text": "First time use! Please read. You should not put the deck in sleep mode if you have a file open that is saved on a share. All credentials will be stored in clear text!!! And please note: This plugin is still in an early beta phase so expect bugs or unusual behaviour"
 }

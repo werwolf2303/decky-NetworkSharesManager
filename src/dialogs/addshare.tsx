@@ -8,27 +8,30 @@ import {
     TextField, ToggleField
 } from "decky-frontend-lib";
 import {Frontend} from "../frontend";
-import {ChangeEvent} from "react";
+import React, {ChangeEvent, VFC} from "react";
 import {Backend} from "../backend";
 
-export const showAddShareModal = (
+type AddShareModalProps = {
+    closeModal: () => void,
     frontend: Frontend,
     backend: Backend,
-    addressObj = "",
-    globalAddressObj = "",
-    mountingPathObj = "",
-    usernameObj = "",
-    passwordObj = "",
-    automountObj = false,
-    color = "white"
+    color: string,
+    onClose: () => void
+}
 
-) => {
-    var address = addressObj;
-    var globalAddress = globalAddressObj;
-    var mountingPath = mountingPathObj;
-    var username = usernameObj;
-    var password = passwordObj;
-    var automount = automountObj;
+export const AddShareModal: VFC<AddShareModalProps> = ({
+    closeModal,
+    frontend,
+    backend,
+    color,
+    onClose
+}) => {
+    const [ address, setAddress ] = React.useState<string>("");
+    const [ globalAddress, setGlobalAddress ] = React.useState<string>("");
+    const [ mountingPath, setMountingPath ] = React.useState<string>("");
+    const [ username, setUsername ] = React.useState<string>("");
+    const [ password, setPassword ] = React.useState<string>("");
+    const [ automount, setAutomount ] = React.useState<boolean>(false);
 
     function checkInput(): boolean {
         var passwordCheck = password != "";
@@ -40,7 +43,7 @@ export const showAddShareModal = (
         return address != "" && mountingPath != "" && usernameCheck && passwordCheck;
     }
 
-    const { Close } = showModal(
+    return (
         <ModalRoot>
             <DialogHeader style={{ color: color }} className={"addShareModalHeader"} >
                 {frontend.getLanguage().translate("addshare.title")}
@@ -49,35 +52,35 @@ export const showAddShareModal = (
                 <PanelSectionRow>
                     <Field label={frontend.getLanguage().translate("addshare.address")}>
                         <TextField onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                            address = event.target.value;
+                            setAddress(event.target.value);
                         }} style={{ minWidth: "50vw" }} placeholder={"//XXX.XXX.XXX.XXX/Wolf"} />
                     </Field>
                 </PanelSectionRow>
                 <PanelSectionRow>
                     <Field disabled={true} label={frontend.getLanguage().translate("addshare.globaladdress")}>
                         <TextField onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                            globalAddress = event.target.value;
+                            setGlobalAddress(event.target.value);
                         }} style={{ minWidth: "40vw" }} placeholder={"//example.com/Wolf"} />
                     </Field>
                 </PanelSectionRow>
                 <PanelSectionRow>
                     <Field label={frontend.getLanguage().translate("addshare.mountingpath")}>
                         <TextField onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                            mountingPath = event.target.value;
+                            setMountingPath(event.target.value);
                         }} style={{ minWidth: "40vw" }} placeholder={"/home/deck/Wolf"} />
                     </Field>
                 </PanelSectionRow>
                 <PanelSectionRow>
                     <Field label={frontend.getLanguage().translate("addshare.username")}>
                         <TextField onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                            username = event.target.value;
+                            setUsername(event.target.value);
                         }} style={{ minWidth: "50vw" }} placeholder={"walterhorst@example.com"} />
                     </Field>
                 </PanelSectionRow>
                 <PanelSectionRow>
                     <Field label={frontend.getLanguage().translate("addshare.password")}>
                         <TextField onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                            password = event.target.value;
+                            setPassword(event.target.value);
                         }} style={{ minWidth: "50vw" }} placeholder={"verysecurepassword1234"}/>
                     </Field>
                 </PanelSectionRow>
@@ -87,7 +90,7 @@ export const showAddShareModal = (
                         checked={false}
                         label={frontend.getLanguage().translate("addshare.automount")}
                         onChange={(checked: boolean) => {
-                            automount = checked;
+                            setAutomount(checked);
                         }}
                     />
                 </PanelSectionRow>
@@ -101,30 +104,30 @@ export const showAddShareModal = (
                     <DialogButton onClick={() => {
                         async function doSave() {
                             await backend.settingsAddShare(username, password, address, globalAddress, mountingPath, automount);
-                            Close()
+                            closeModal();
+                            onClose();
                             frontend.getEvents().trigger("ondoalltablerefresh");
                         }
                         var inputCheckResult: boolean = checkInput();
                         if(inputCheckResult) doSave()
                         if(!inputCheckResult) {
-                            Close()
-                            showAddShareModal(
-                                frontend,
-                                backend,
-                                address,
-                                globalAddress,
-                                mountingPath,
-                                username,
-                                password,
-                                automount,
-                                "red"
-                            );
+                            closeModal();
+                            const {Close} = showModal(
+                                <AddShareModal
+                                    closeModal={() => {Close()}}
+                                    frontend={frontend}
+                                    backend={backend}
+                                    color={"red"}
+                                    onClose={onClose}
+                                />,
+                                window
+                            )
                         }
                     }}>
                         {frontend.getLanguage().translate("addshare.add")}
                     </DialogButton>
                     <DialogButton onClick={() => {
-                        Close()
+                        closeModal();
                     }}>
                         {frontend.getLanguage().translate("addshare.closecancel")}
                     </DialogButton>
@@ -132,4 +135,4 @@ export const showAddShareModal = (
             </DialogBody>
         </ModalRoot>
     );
-};
+}

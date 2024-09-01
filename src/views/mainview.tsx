@@ -5,6 +5,8 @@ import {ErrorView} from "./errorview";
 import {OverView} from "./overview";
 import {FileSystemArray} from "../sections/mountedshares";
 import {Field, PanelSection, Spinner} from "decky-frontend-lib";
+import {openFirstTime} from "../dialogs/firsttime";
+import {openBackendErrorDialog} from "../dialogs/backenderror";
 
 export function MainView({backend, frontend}: { backend: Backend, frontend: Frontend }): ReactElement {
     const [loaded, setLoaded] = React.useState(false);
@@ -35,7 +37,6 @@ export function MainView({backend, frontend}: { backend: Backend, frontend: Fron
             automount: boolean;
             id: string;
         }> = JSON.parse(await backend.getShares());
-
         shares.map((share) => {
             if (share.automount) {
                 backend.mount(share.username, share.password, share.address, share.mountingpath);
@@ -61,19 +62,11 @@ export function MainView({backend, frontend}: { backend: Backend, frontend: Fron
                 automount: boolean;
                 id: string;
             }> = JSON.parse(await backend.getShares());
-            var mounts: FileSystemArray = JSON.parse(await backend.getMounts());
-            mounts?.filesystems?.[0]?.children?.map(mount => {
-                if (mount.fstype === "cifs") {
-                    var found = false;
-                    if (connectivityTestChange == 1) {
-                        shares.map((share) => {
-                            if (share.automount && share.mountingpath == mount.target) {
-                                backend.mount(share.username, share.password, share.address, share.mountingpath);
-                            }
-                        })
-                    }
+            shares.map((share) => {
+                if (share.automount) {
+                    backend.mount(share.username, share.password, share.address, share.mountingpath);
                 }
-            });
+            })
         }
     }
 
@@ -86,9 +79,27 @@ export function MainView({backend, frontend}: { backend: Backend, frontend: Fron
         frontend.getEvents().subscribe(onConnectivityTestChange, "onconnectivitychange");
     }
 
-    React.useEffect(() => {
+    async function checkFirstTime() {
+        var openIt = await backend.getSetting("firstTime") == "true";
+        var hasError = false;
+        backend.getPendingBackendEvents().map((backendEvent) => {
+            hasError = true;
+            openBackendErrorDialog(backendEvent, frontend);
+        })
+        if(openIt && !hasError) openFirstTime(backend, frontend);
+    }
 
-        load().then(() => setLoaded(true))
+    React.useEffect(() => {
+        async function checkVersion() {
+            if(await backend.getSetting("version") != frontend.getPluginVersion()) {
+                await backend.refreshConfig()
+                await backend.setSetting("firstTime", "true")
+            }
+        }
+        load().then(() => {
+            setLoaded(true)
+            checkVersion().then(() =>  checkFirstTime());
+        })
     }, []);
 
     return (<>

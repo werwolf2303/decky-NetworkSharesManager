@@ -74,14 +74,28 @@ class Settings:
             "shares": [
             ],
             "language": "en",
-            "autolanguage": True,
-            "firstTime": False,
+            "autolanguage": "true",
+            "firstTime": "true",
+            "version": "0.0.1"
+        }
+        self.defaultConfig = {
+            "shares": [
+            ],
+            "language": "en",
+            "autolanguage": "true",
+            "firstTime": "true",
             "version": "0.0.1"
         }
         if not os.path.exists(self.directory + "/config.json"):
             self.__writeConfig()
         else:
             self.configCache = self.__readConfig()
+
+    def refreshConfig(self):
+        # When the plugin got updated, check if the default config has the same values as the current one
+        for defaultKey in self.defaultConfig.keys():
+            if defaultKey not in self.configCache.keys():
+                self.configCache[defaultKey] = self.defaultConfig[defaultKey]
 
     def __writeConfig(self):
         with open(self.directory + '/config.json', 'w') as configFile:
@@ -111,18 +125,21 @@ class Settings:
         self.__writeConfig()
 
     def editShare(self, shareID, username, password, address, globaladdress, mountingpath, automount):
-        self.configCache["shares"][shareID]["username"] = username
-        self.configCache["shares"][shareID]["password"] = password
-        self.configCache["shares"][shareID]["address"] = address
-        self.configCache["shares"][shareID]["globaladdress"] = globaladdress
-        self.configCache["shares"][shareID]["mountingpath"] = mountingpath
-        self.configCache["shares"][shareID]["automount"] = automount
-        self.__writeConfig()
+        for share in self.configCache["shares"]:
+            if share["id"] == shareID:
+                share["username"] = username
+                share["password"] = password
+                share["address"] = address
+                share["globaladdress"] = globaladdress
+                share["mountingpath"] = mountingpath
+                share["automount"] = automount
+                self.__writeConfig()
 
     def removeShare(self, shareId):
         for share in self.configCache["shares"]:
             if share["id"] == shareId:
                 self.configCache["shares"].remove(share)
+                self.__writeConfig()
 
     def getSetting(self, key) -> any:
         return self.configCache[key]
@@ -205,11 +222,11 @@ class Plugin:
     async def mount(self, username, password, shareaddress, sharepath):
         try:
             logging.getLogger().info("mount called")
+            if not os.path.exists(sharepath):
+                os.mkdir(sharepath)
             if os.path.ismount(sharepath):
                 logging.getLogger().info("mount skipped")
                 return
-            if not os.path.exists(sharepath):
-                os.mkdir(sharepath)
             subprocess.run(["mount", "-t", "cifs", shareaddress, sharepath, "-o",
                             "username=" + username + ",password=" + password + ",uid=" + str(
                                 os.getuid()) + ",gid=" + str(os.getgid())], capture_output=True, text=True, check=True)
@@ -295,3 +312,11 @@ class Plugin:
             logging.getLogger().error(e)
             self.events.addEvent(EventTypes.ERROTHER, str(e))
 
+    async def refreshConfig(self):
+        try:
+            logging.getLogger().info("refreshConfig called")
+            self.settings.refreshConfig()
+            logging.getLogger().info("refreshConfig")
+        except Exception as e:
+            logging.getLogger().error(e)
+            self.events.addEvent(EventTypes.ERROTHER, str(e))

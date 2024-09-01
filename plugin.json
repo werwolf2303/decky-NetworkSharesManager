@@ -1,9 +1,9 @@
 {
-  "name": "Network Shares Manager",
+  "name": "NetworkSharesManager",
   "author": "Werwolf2303",
-  "flags": ["debug", "_root"],
+  "flags": ["root"],
   "publish": {
-    "tags": ["root"],
+    "tags": ["root", "smb", "cifs"],
     "description": "Manage network share mounts inside Gaming Mode",
     "image": "https://opengraph.githubassets.com/1/SteamDeckHomebrew/PluginLoader"
   }
