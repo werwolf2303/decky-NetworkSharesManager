@@ -6,3 +6,6 @@ node_modules/
 .$Design.drawio.bkp
 .$Design.drawio.dtmp
 data/
+out/
+dist/
+cli/
